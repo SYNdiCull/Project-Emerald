@@ -138,7 +138,7 @@ function getPlayerTotalStatsByMatch($conn, $playerName) {
     $totalStats = array();
 
     // Fetch unique match IDs for the player
-    $stmt = $conn->prepare("SELECT DISTINCT match_id FROM player_stats WHERE name = ?");
+    $stmt = $conn->prepare("SELECT DISTINCT match_id FROM player_stats WHERE `name` = ?");
     $stmt->bind_param("s", $playerName);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -147,7 +147,7 @@ function getPlayerTotalStatsByMatch($conn, $playerName) {
         $matchId = $row['match_id'];
 
         // Fetch total stats for the player in each match
-        $stmtStats = $conn->prepare("SELECT name, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(kd) as kd, SUM(kad) as kad, SUM(cs) as cs, SUM(csm) as csm, SUM(dmg) as dmg, SUM(dmm) as dmm, SUM(vision_score) as vision_score, SUM(kp) as kp FROM player_stats WHERE name = ? AND match_id = ?");
+        $stmtStats = $conn->prepare("SELECT `name`, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(kd) as kd, SUM(kad) as kad, SUM(cs) as cs, SUM(csm) as csm, SUM(dmg) as dmg, SUM(dmm) as dmm, SUM(vision_score) as vision_score, SUM(kp) as kp FROM player_stats WHERE `name` = ? AND match_id = ?");
         $stmtStats->bind_param("ss", $playerName, $matchId);
         $stmtStats->execute();
         $resultStats = $stmtStats->get_result();
