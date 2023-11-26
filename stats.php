@@ -136,7 +136,8 @@ function getPlayersInTeamStats($conn, $teamId) {
     $stmt->bind_param("s", $teamId);
     $stmt->execute();
     $result = $stmt->get_result();
-
+    $name = $result['name'];
+    $totals['name'] = $name;
     while ($row = $result->fetch_assoc()) {
         // Add each stat to the corresponding total
         $totals['kills'] += $row['kills'];
@@ -151,8 +152,7 @@ function getPlayersInTeamStats($conn, $teamId) {
         $totals['vision_score'] += $row['vision_score'];
         $totals['kp'] += $row['kp'];
     }
-    $name = $result['name'];
-    $totals['name'] = $name;
+    
 
     $stmt->close();
 
