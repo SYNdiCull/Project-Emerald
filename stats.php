@@ -151,6 +151,8 @@ function getPlayersInTeamStats($conn, $teamId) {
         $totals['vision_score'] += $row['vision_score'];
         $totals['kp'] += $row['kp'];
     }
+    $name = $result['name'];
+    $totals['name'] = $name;
 
     $stmt->close();
 
