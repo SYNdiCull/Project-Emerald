@@ -351,12 +351,12 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
             <!-- Content for the Setup View tab -->
             <h2 style="margin: auto">Team Stats</h2>
                 <?php
-                    if (isset($_POST['submitMatch'])) {
-                        $newMatchId = $_POST['newMatchId']; // Adjust based on your form field name
+                    if (isset($_POST['confirmStats'])) {
+                        $matchId = $_POST['matchId']; // Adjust based on your form field name
                     
                         // Fetch unique players for the new match
                         $playersStmt = $conn->prepare("SELECT DISTINCT `name` FROM player_stats WHERE match_id = ?");
-                        $playersStmt->bind_param("s", $newMatchId);
+                        $playersStmt->bind_param("s", $matchId);
                         $playersStmt->execute();
                         $playersResult = $playersStmt->get_result();
                     
@@ -366,7 +366,7 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
                     
                         while ($playerRow = $playersResult->fetch_assoc()) {
                             $playerName = $playerRow['name'];
-                            $totals = getPlayerStatsTotals($conn, $playerName, $newMatchId);
+                            $totals = getPlayerStatsTotals($conn, $playerName, $matchId);
                     
                             echo '<tr>';
                             echo '<td>' . $playerName . '</td>';
