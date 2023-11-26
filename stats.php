@@ -119,7 +119,7 @@ function getTeamIds($conn) {
 function getPlayerNames($conn) {
     $playerNames = array();
 
-    $stmt = $conn->prepare("SELECT DISTINCT name FROM player_stats");
+    $stmt = $conn->prepare("SELECT DISTINCT `name` FROM player_stats");
     $stmt->execute();
     $result = $stmt->get_result();
 
