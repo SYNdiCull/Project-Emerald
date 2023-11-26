@@ -351,32 +351,22 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
             <!-- Content for the Setup View tab -->
             <h2 style="margin: auto">Team Stats</h2>
                 <?php
-                    $matchIds = array();
-
-                    $matchIdStmt = $conn->prepare("SELECT DISTINCT match_id FROM player_stats");
-                    $matchIdStmt->execute();
-                    $matchIdResult = $matchIdStmt->get_result();
+                    if (isset($_POST['submitMatch'])) {
+                        $newMatchId = $_POST['newMatchId']; // Adjust based on your form field name
                     
-                    while ($matchIdRow = $matchIdResult->fetch_assoc()) {
-                        $matchIds[] = $matchIdRow['match_id'];
-                    }
-                    
-                    $matchIdStmt->close();
-                    
-                    // Display the table
-                    echo '<table class="table table-bordered" style="padding-left:10px;">';
-                    echo '<tr><th>Name</th><th>Kills</th><th>Deaths</th><th>Assists</th><th>K/D</th><th>K/D/A</th><th>CS</th><th>CSM</th><th>DMG</th><th>DMM</th><th>Vision Score</th><th>KP</th></tr>';
-                    
-                    foreach ($matchIds as $matchId) {
-                        // Fetch players for each match
+                        // Fetch unique players for the new match
                         $playersStmt = $conn->prepare("SELECT DISTINCT `name` FROM player_stats WHERE match_id = ?");
-                        $playersStmt->bind_param("s", $matchId);
+                        $playersStmt->bind_param("s", $newMatchId);
                         $playersStmt->execute();
                         $playersResult = $playersStmt->get_result();
                     
+                        // Display the updated table
+                        echo '<table class="table table-bordered" style="padding-left:10px;">';
+                        echo '<tr><th>Name</th><th>Kills</th><th>Deaths</th><th>Assists</th><th>K/D</th><th>K/D/A</th><th>CS</th><th>CSM</th><th>DMG</th><th>DMM</th><th>Vision Score</th><th>KP</th></tr>';
+                    
                         while ($playerRow = $playersResult->fetch_assoc()) {
                             $playerName = $playerRow['name'];
-                            $totals = getPlayerStatsTotals($conn, $playerName, $matchId);
+                            $totals = getPlayerStatsTotals($conn, $playerName, $newMatchId);
                     
                             echo '<tr>';
                             echo '<td>' . $playerName . '</td>';
@@ -394,11 +384,10 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
                             echo '</tr>';
                         }
                     
+                        echo '</table>';
+                    
                         $playersStmt->close();
                     }
-                    
-                    echo '</table>';
-
                 ?>
 
                 
