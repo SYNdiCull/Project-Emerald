@@ -171,7 +171,7 @@ function getPlayerTotalStatsByMatch($conn, $playerName) {
 function displayPlayerTotalStatsTable($totalStats) {
     echo '<table class="table table-bordered" style="padding-left:10px;">';
     echo '<tr><th>Player Name</th><th>Kills</th><th>Deaths</th><th>Assists</th><th>K/D</th><th>K/D/A</th><th>CS</th><th>CSM</th><th>DMG</th><th>DMM</th><th>Vision Score</th><th>KP</th></tr>';
-
+    print_r($totalStats);
     foreach ($totalStats as $stats) {
         echo '<tr>';
         echo '<td>' . $stats['name'] . '</td>';
