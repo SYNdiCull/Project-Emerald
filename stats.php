@@ -116,70 +116,78 @@ function getTeamIds($conn) {
     return $teamIds;
 }
 
-// Function to get players in a specific team from player_stats
-function getPlayersInTeamStats($conn, $teamId) {
-    $totals = array(
-        'kills' => 0,
-        'deaths' => 0,
-        'assists' => 0,
-        'kd' => 0,
-        'kad' => 0,
-        'cs' => 0,
-        'csm' => 0,
-        'dmg' => 0,
-        'dmm' => 0,
-        'vision_score' => 0,
-        'kp' => 0
-    );
+function getPlayerNames($conn) {
+    $playerNames = array();
 
-    $stmt = $conn->prepare("SELECT * FROM player_stats WHERE team_id = ?");
-    $stmt->bind_param("s", $teamId);
+    $stmt = $conn->prepare("SELECT DISTINCT name FROM player_stats");
     $stmt->execute();
     $result = $stmt->get_result();
-    $name = $result['name'];
-    $totals['name'] = $name;
+
     while ($row = $result->fetch_assoc()) {
-        // Add each stat to the corresponding total
-        $totals['kills'] += $row['kills'];
-        $totals['deaths'] += $row['deaths'];
-        $totals['assists'] += $row['assists'];
-        $totals['kd'] += $row['kd'];
-        $totals['kad'] += $row['kad'];
-        $totals['cs'] += $row['cs'];
-        $totals['csm'] += $row['csm'];
-        $totals['dmg'] += $row['dmg'];
-        $totals['dmm'] += $row['dmm'];
-        $totals['vision_score'] += $row['vision_score'];
-        $totals['kp'] += $row['kp'];
+        $playerNames[] = $row['name'];
     }
-    
 
     $stmt->close();
 
-    return $totals;
+    return $playerNames;
 }
 
 
+// Function to get players in a specific team from player_stats
+function getPlayerTotalStatsByMatch($conn, $playerName) {
+    $totalStats = array();
+
+    // Fetch unique match IDs for the player
+    $stmt = $conn->prepare("SELECT DISTINCT match_id FROM player_stats WHERE name = ?");
+    $stmt->bind_param("s", $playerName);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        $matchId = $row['match_id'];
+
+        // Fetch total stats for the player in each match
+        $stmtStats = $conn->prepare("SELECT name, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(kd) as kd, SUM(kad) as kad, SUM(cs) as cs, SUM(csm) as csm, SUM(dmg) as dmg, SUM(dmm) as dmm, SUM(vision_score) as vision_score, SUM(kp) as kp FROM player_stats WHERE name = ? AND match_id = ?");
+        $stmtStats->bind_param("ss", $playerName, $matchId);
+        $stmtStats->execute();
+        $resultStats = $stmtStats->get_result();
+
+        while ($rowStats = $resultStats->fetch_assoc()) {
+            // Add total stats for the player in each match to the result array
+            $totalStats[] = $rowStats;
+        }
+
+        $stmtStats->close();
+    }
+
+    $stmt->close();
+
+    return $totalStats;
+}
+
+
+
 // Function to display player stats in a table
-function displayPlayerStatsTable($playerStats) {
+function displayPlayerTotalStatsTable($totalStats) {
     echo '<table class="table table-bordered" style="padding-left:10px;">';
-    echo '<tr><th>Name</th><th>Kills</th><th>Deaths</th><th>Assists</th><th>K/D</th><th>K/D/A</th><th>CS</th><th>CSM</th><th>DMG</th><th>DMM</th><th>Vision Score</th><th>KP</th></tr>';
-    
-    // Display a single row for the player's stats
-    echo '<tr>';
-    echo '<td>' . $playerStats['name'] . '</td>';
-    echo '<td>' . $playerStats['kills'] . '</td>';
-    echo '<td>' . $playerStats['deaths'] . '</td>';
-    echo '<td>' . $playerStats['assists'] . '</td>';
-    echo '<td>' . $playerStats['kd'] . '</td>';
-    echo '<td>' . $playerStats['kad'] . '</td>';
-    echo '<td>' . $playerStats['cs'] . '</td>';
-    echo '<td>' . $playerStats['csm'] . '</td>';
-    echo '<td>' . $playerStats['dmg'] . '</td>';
-    echo '<td>' . $playerStats['dmm'] . '</td>';
-    echo '<td>' . $playerStats['vision_score'] . '</td>';
-    echo '<td>' . $playerStats['kp'] . '</td>';
-    echo '</tr>';
+    echo '<tr><th>Player Name</th><th>Kills</th><th>Deaths</th><th>Assists</th><th>K/D</th><th>K/D/A</th><th>CS</th><th>CSM</th><th>DMG</th><th>DMM</th><th>Vision Score</th><th>KP</th></tr>';
+
+    foreach ($totalStats as $stats) {
+        echo '<tr>';
+        echo '<td>' . $stats['name'] . '</td>';
+        echo '<td>' . $stats['kills'] . '</td>';
+        echo '<td>' . $stats['deaths'] . '</td>';
+        echo '<td>' . $stats['assists'] . '</td>';
+        echo '<td>' . $stats['kd'] . '</td>';
+        echo '<td>' . $stats['kad'] . '</td>';
+        echo '<td>' . $stats['cs'] . '</td>';
+        echo '<td>' . $stats['csm'] . '</td>';
+        echo '<td>' . $stats['dmg'] . '</td>';
+        echo '<td>' . $stats['dmm'] . '</td>';
+        echo '<td>' . $stats['vision_score'] . '</td>';
+        echo '<td>' . $stats['kp'] . '</td>';
+        echo '</tr>';
+    }
 
     echo '</table>';
 }
@@ -357,15 +365,13 @@ function displayPlayerStatsTable($playerStats) {
             <!-- Content for the Setup View tab -->
             <h2 style="margin: auto">Team Stats</h2>
                 <?php
-                    $teamIds = getTeamIds($conn);
+                    $players = getPlayerNames($conn);
+                    foreach($players as $player) {
+                        $totalStats = getPlayerTotalStatsByMatch($conn, $player);
+                        displayPlayerTotalStatsTable($totalStats);
 
-                    foreach ($teamIds as $teamId) {
-                        $playersInTeamStats = getPlayersInTeamStats($conn, $teamId);
-                        if (!empty($playersInTeamStats)) {
-                            echo '<h3>Team: ' . $teamId . '</h3>';
-                            displayPlayerStatsTable($playersInTeamStats);
-                        }
                     }
+
                 ?>
 
                 
