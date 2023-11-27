@@ -11,63 +11,71 @@ function getSummonerRank($summonerName, $apiKey) {
         ],
     ];
 
-    $context = stream_context_create($contextOptions);
+    if ($apiKey != 'Optional') {
+        $context = stream_context_create($contextOptions);
 
-    try {
-        // Attempt to fetch the data with the specified context
-        $response = file_get_contents($summonerUrl, false, $context);
-
-        if ($response === false) {
-            // Handle the case where file_get_contents() fails
-            throw new Exception("Unable to get RIOT data");
+        try {
+            // Attempt to fetch the data with the specified context
+            $response = file_get_contents($summonerUrl, false, $context);
+        
+            if ($response === false) {
+                // Handle the case where file_get_contents() fails
+                throw new Exception("Unable to get RIOT data");
+            }
+        
+            // Process the response here
+        
+        } catch (Exception $e) {
+            // Handle the exception
+            if ($http_response_header[0] === 'HTTP/1.1 403 Forbidden') {
+                echo "Error: Insufficient permissions or invalid API key.";
+            } else {
+                echo "Error: " . $e->getMessage();
+            }
         }
 
-        // Process the response here
 
-    } catch (Exception $e) {
-        // Handle the exception
-        echo "Error: " . $e->getMessage();
-    }
+        if ($response) {
+            $summonerData = json_decode($response, true);
 
+            if (isset($summonerData['id'])) {
+                // Get the summoner ID
+                $summonerId = $summonerData['id'];
 
-    if ($response) {
-        $summonerData = json_decode($response, true);
+                // API endpoint for getting summoner's rank
+                $rankUrl = "https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/$summonerId?api_key=$apiKey";
 
-        if (isset($summonerData['id'])) {
-            // Get the summoner ID
-            $summonerId = $summonerData['id'];
+                // Send a request to get summoner's rank
+                $rankData = file_get_contents($rankUrl);
 
-            // API endpoint for getting summoner's rank
-            $rankUrl = "https://na1.api.riotgames.com/lol/league/v4/entries/by-summoner/$summonerId?api_key=$apiKey";
+                if ($rankData) {
+                    $rankInfo = json_decode($rankData, true);
 
-            // Send a request to get summoner's rank
-            $rankData = file_get_contents($rankUrl);
-
-            if ($rankData) {
-                $rankInfo = json_decode($rankData, true);
-
-                // Check if the summoner has ranked data
-                if (!empty($rankInfo)) {
-                    // Find the "RANKED_SOLO_5x5" entry
-                    foreach ($rankInfo as $entry) {
-                        if ($entry['queueType'] === "RANKED_SOLO_5x5") {
-                            $tier = $entry['tier'];
-                            $rank = $entry['rank'];
-                            return $tier . ' ' . $rank;
+                    // Check if the summoner has ranked data
+                    if (!empty($rankInfo)) {
+                        // Find the "RANKED_SOLO_5x5" entry
+                        foreach ($rankInfo as $entry) {
+                            if ($entry['queueType'] === "RANKED_SOLO_5x5") {
+                                $tier = $entry['tier'];
+                                $rank = $entry['rank'];
+                                return $tier . ' ' . $rank;
+                            }
                         }
+                        return "Error summoner $summonerName is unranked in RANKED_SOLO_5x5.";
+                    } else {
+                        return "Error summoner $summonerName is unranked.";
                     }
-                    return "Error summoner $summonerName is unranked in RANKED_SOLO_5x5.";
                 } else {
-                    return "Error summoner $summonerName is unranked.";
+                    return "Error fetching rank data.";
                 }
             } else {
-                return "Error fetching rank data.";
+                return "Error summoner not found.";
             }
         } else {
-            return "Error summoner not found.";
+            return "Error fetching summoner data.";
         }
     } else {
-        return "Error fetching summoner data.";
+        return "Error";
     }
 }
 
@@ -338,7 +346,7 @@ function getPlayerMatchStats($matchId, $riotToken, $conn) {
         if (!(empty($existingPuuids) || empty($existingNames))) {
             // print_r($matchData);
             foreach ($participants as $participant) {
-                // print_r($participant);
+                //print_r($participant);
                 $puuid = $participant['puuid'];
                 $playerName = $participant['summonerName'];
                 $gameTime = $matchData['info']['gameDuration'];
