@@ -170,14 +170,25 @@ function getPlayerNames($conn) {
         <link rel="stylesheet" href="styles/stats.css">
     </head>
     <body style="overflow-x: hidden;">
+    <style>
+        body, html {
+        height: 100%;
+        width: 100%;
+        }
+        body {
+            background-attachment: fixed;
+            background: rgb(2,0,36);
+            background: linear-gradient(0deg, rgba(2,0,36,1) 0%, rgba(255,0,0,1) 0%, rgba(255,191,154,1) 26%);
+        }
+    </style>
     <nav class="navbar bg-dark navbar-dark">
             <div class="container-fluid" >
                 <a class="navbar-brand" href="/dashboard.php">Dashboard</a>
 
                 <?php if ($guestoradmin == "Admin") {echo '<div class="tab active" onclick=openTab("statGen")>Generate Stats</div>';} ?>
                 <?php if ($guestoradmin == "Guest") {echo '<div class="tab active" onclick=openTab("playerStats")>Overall Player Stats</div>';} else {echo '<div class="tab" onclick=openTab("playerStats")>Overall Player Stats</div>';}?>
-                <div class="tab" onclick="openTab('generalStatsView')">Team Stats</div>
-                <?php if ($guestoradmin == "Admin") {echo '<div class="tab" onclick=openTab("teamManagement")>Team Management</div>';} ?>
+                <!-- <div class="tab" onclick="openTab('generalStatsView')">Team Stats</div> -->
+                <!-- <?php if ($guestoradmin == "Admin") {echo '<div class="tab" onclick=openTab("teamManagement")>Team Management</div>';} ?> -->
                 <!-- <div class="tab" onclick="openTab('teamOrganization')">Team Organization</div>
                 <div class="tab" onclick="openTab('teamOrganization')">Team Organization</div> -->
 
@@ -228,10 +239,15 @@ function getPlayerNames($conn) {
                     // print_r($results); // Use print_r to display the array contents
                     $playerName = getPlayerNamesFromMatch($matchId, $riotToken, $conn);
                     $_SESSION['playerKDA'] = getPlayerMatchStats($matchId, $riotToken, $conn);
-                    echo "Retrieved data for: \n";
-                    foreach ($_SESSION['playerKDA'] as $playerStats) {
-                        echo 'Player: ' . $playerStats['PlayerName'] . "\n";
-                        
+                    if ($_SESSION['playerKDA'] != null) {
+                        echo "Retrieved data for: \n";
+
+                        foreach ($_SESSION['playerKDA'] as $playerStats) {
+                            echo 'Player: ' . $playerStats['PlayerName'] . "\n";
+                            
+                        }
+                    } else {
+                        echo 'No Known Players';
                     }
 
                     echo "</pre>";
@@ -241,12 +257,14 @@ function getPlayerNames($conn) {
             ?>
             <?php 
                 if (isset($_POST['submit'])) {
-                    echo '<span>Game Length:</span>';
-
-                    $minutes = floor($_SESSION['playerKDA'][0]['MATCH_TIME'] / 60);
-                    $remainingSeconds = $_SESSION['playerKDA'][0]['MATCH_TIME'] % 60;
                     
-                    echo '<span>' . $minutes . ":" . $remainingSeconds . "</span>"; 
+                    if ($_SESSION['playerKDA'] != null) {
+                        echo '<span>Game Length:</span>';
+                        $minutes = floor($_SESSION['playerKDA'][0]['MATCH_TIME'] / 60);
+                        $remainingSeconds = $_SESSION['playerKDA'][0]['MATCH_TIME'] % 60;
+                        
+                        echo '<span>' . $minutes . ":" . $remainingSeconds . "</span>"; 
+                    }
                 }
             ?>
             <table class="table table-hover table-striped player-table">
@@ -295,25 +313,27 @@ function getPlayerNames($conn) {
             </table>
             <?php 
             if (isset($_POST['submit'])) {
-                echo '
-                    <form method="post">
-                        <input type="hidden" name="matchId" value="' . htmlspecialchars(strip_tags($_POST['matchId'])) . '">
-                        <input type="hidden" name="playerName" value="' . htmlspecialchars(strip_tags($playerStats['PlayerName'])) . '">
-                        <input type="hidden" name="kills" value="' . htmlspecialchars(strip_tags($playerStats['Kills'])) . '">
-                        <input type="hidden" name="deaths" value="' . htmlspecialchars(strip_tags($playerStats['Deaths'])) . '">
-                        <input type="hidden" name="assists" value="' . htmlspecialchars(strip_tags($playerStats['Assists'])) . '">
-                        <input type="hidden" name="kd" value="' . htmlspecialchars(strip_tags($playerStats['K/D'])) . '">
-                        <input type="hidden" name="kda" value="' . htmlspecialchars(strip_tags($playerStats['K/D/A'])) . '">
-                        <input type="hidden" name="ff" value="' . htmlspecialchars(strip_tags($playerStats['FF'])) . '">
-                        <input type="hidden" name="cs" value="' . htmlspecialchars(strip_tags($playerStats['CS'])) . '">
-                        <input type="hidden" name="csm" value="' . htmlspecialchars(strip_tags($playerStats['CSM'])) . '">
-                        <input type="hidden" name="dmg" value="' . htmlspecialchars(strip_tags($playerStats['DMG'])) . '">
-                        <input type="hidden" name="dmm" value="' . htmlspecialchars(strip_tags($playerStats['DMM'])) . '">
-                        <input type="hidden" name="vs" value="' . htmlspecialchars(strip_tags($playerStats['VS'])) . '">
-                        <input type="hidden" name="kp" value="' . htmlspecialchars(strip_tags($playerStats['KP'])) . '">
-                        <button type="submit" name="confirmStats" class="btn btn-success">Confirm Selected Player Stats</button>
+                if ($_SESSION['playerKDA'] != null) {
+                    echo '
+                        <form method="post">
+                            <input type="hidden" name="matchId" value="' . htmlspecialchars(strip_tags($_POST['matchId'])) . '">
+                            <input type="hidden" name="playerName" value="' . htmlspecialchars(strip_tags($playerStats['PlayerName'])) . '">
+                            <input type="hidden" name="kills" value="' . htmlspecialchars(strip_tags($playerStats['Kills'])) . '">
+                            <input type="hidden" name="deaths" value="' . htmlspecialchars(strip_tags($playerStats['Deaths'])) . '">
+                            <input type="hidden" name="assists" value="' . htmlspecialchars(strip_tags($playerStats['Assists'])) . '">
+                            <input type="hidden" name="kd" value="' . htmlspecialchars(strip_tags($playerStats['K/D'])) . '">
+                            <input type="hidden" name="kda" value="' . htmlspecialchars(strip_tags($playerStats['K/D/A'])) . '">
+                            <input type="hidden" name="ff" value="' . htmlspecialchars(strip_tags($playerStats['FF'])) . '">
+                            <input type="hidden" name="cs" value="' . htmlspecialchars(strip_tags($playerStats['CS'])) . '">
+                            <input type="hidden" name="csm" value="' . htmlspecialchars(strip_tags($playerStats['CSM'])) . '">
+                            <input type="hidden" name="dmg" value="' . htmlspecialchars(strip_tags($playerStats['DMG'])) . '">
+                            <input type="hidden" name="dmm" value="' . htmlspecialchars(strip_tags($playerStats['DMM'])) . '">
+                            <input type="hidden" name="vs" value="' . htmlspecialchars(strip_tags($playerStats['VS'])) . '">
+                            <input type="hidden" name="kp" value="' . htmlspecialchars(strip_tags($playerStats['KP'])) . '">
+                            <button type="submit" name="confirmStats" class="btn btn-success">Confirm Selected Player Stats</button>
 
-                    </form>';
+                        </form>';
+                }
 
             
                

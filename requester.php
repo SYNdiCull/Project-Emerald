@@ -331,68 +331,73 @@ function getPlayerMatchStats($matchId, $riotToken, $conn) {
 
         // Initialize arrays to store player statistics
         $matchStats = array();
-
+        // print_r($participants);
         // Check the database for existing PUUIDs and names
         $existingPuuids = getExistingPuuidsFromDatabase($conn);
         $existingNames = getExistingNamesFromDatabase($conn);
-        // print_r($matchData);
-        foreach ($participants as $participant) {
-            $puuid = $participant['puuid'];
-            $playerName = $participant['summonerName'];
-            $gameTime = $matchData['info']['gameDuration'];
-            // Check if the PUUID is in the database
-            if (in_array($puuid, $existingPuuids)) {
-                // Player exists by PUUID in the database; you can retrieve additional data as needed
+        if (!(empty($existingPuuids) || empty($existingNames))) {
+            // print_r($matchData);
+            foreach ($participants as $participant) {
+                // print_r($participant);
+                $puuid = $participant['puuid'];
+                $playerName = $participant['summonerName'];
+                $gameTime = $matchData['info']['gameDuration'];
+                // Check if the PUUID is in the database
+                if (in_array($puuid, $existingPuuids)) {
+                    // Player exists by PUUID in the database; you can retrieve additional data as needed
 
-                $kills = $participant['kills'];
-                $deaths = $participant['deaths'];
-                $assists = $participant['assists'];
-                if ($participant['deaths'] == 0) {
-                    $kad = ($participant['kills'] + $participant['assists']);
-                    $kd = $participant['kills'];
+                    $kills = $participant['kills'];
+                    $deaths = $participant['deaths'];
+                    $assists = $participant['assists'];
+                    if ($participant['deaths'] == 0) {
+                        $kad = ($participant['kills'] + $participant['assists']);
+                        $kd = $participant['kills'];
+                    } else {
+                        $kd = $participant['kills'] / $participant['deaths'];
+                        $kad = ($participant['kills'] + $participant['assists']) / $participant['deaths'];
+                    }                
+                    $cs = $participant['totalMinionsKilled'];
+                    $csm = $participant['totalMinionsKilled'] / ($gameTime / 60);
+                    $kp = isset($participant['challenges']['killParticipation']) ? $participant['challenges']['killParticipation'] : 0;
+                    $vs = $participant['visionScore'];
+                    $kd = round($kd, 2);
+
+                    $kad = round($kad, 2);
+                    $csm = round($csm, 2);
+                    $ff = $participant['gameEndedInEarlySurrender'];
+                    $dmg = $participant['totalDamageDealtToChampions'];
+                    $dmm = round($participant['challenges']['damagePerMinute'], 2);
+                    $kp = round($kp, 4) * 100;
+                    $matchStats[] = array(
+                        'PlayerName' => $playerName,
+                        'Kills' => $kills,
+                        'Deaths' => $deaths,
+                        'Assists' => $assists,
+                        'K/D' => $kd,
+                        'K/D/A' => $kad,
+                        'CS' => $cs,
+                        'CSM' => $csm,
+                        'FF' => $ff,
+                        'MATCH_TIME' => $gameTime,
+                        'DMG' => $dmg,
+                        'DMM' => $dmm,
+                        'VS' => $vs,
+                        'KP' => $kp,
+                    );
                 } else {
-                    $kd = $participant['kills'] / $participant['deaths'];
-                    $kad = ($participant['kills'] + $participant['assists']) / $participant['deaths'];
-                }                
-                $cs = $participant['totalMinionsKilled'];
-                $csm = $participant['totalMinionsKilled'] / ($gameTime / 60);
-                $kp = isset($participant['challenges']['killParticipation']) ? $participant['challenges']['killParticipation'] : 0;
-                $vs = $participant['visionScore'];
-                $kd = round($kd, 2);
-
-                $kad = round($kad, 2);
-                $csm = round($csm, 2);
-                $ff = $participant['gameEndedInEarlySurrender'];
-                $dmg = $participant['totalDamageDealtToChampions'];
-                $dmm = round($participant['challenges']['damagePerMinute'], 2);
-                $kp = round($kp, 4) * 100;
-                $matchStats[] = array(
-                    'PlayerName' => $playerName,
-                    'Kills' => $kills,
-                    'Deaths' => $deaths,
-                    'Assists' => $assists,
-                    'K/D' => $kd,
-                    'K/D/A' => $kad,
-                    'CS' => $cs,
-                    'CSM' => $csm,
-                    'FF' => $ff,
-                    'MATCH_TIME' => $gameTime,
-                    'DMG' => $dmg,
-                    'DMM' => $dmm,
-                    'VS' => $vs,
-                    'KP' => $kp,
-                );
-            } else {
-                // PUUID is not in the database, check if the player name exists
-                if (in_array($playerName, $existingNames)) {
-                    // Player name exists in the database, update the row with the PUUID
-                    updatePuuidForExistingName($conn, $playerName, $puuid);
+                    // PUUID is not in the database, check if the player name exists
+                    if (in_array($playerName, $existingNames)) {
+                        // Player name exists in the database, update the row with the PUUID
+                        updatePuuidForExistingName($conn, $playerName, $puuid);
+                    }
                 }
             }
+        } else {
+            return null;
         }
 
         // Return the array of player statistics
-        print_r($matchStats);
+        // print_r($matchStats);
         return $matchStats;
     } else {
         return [];
