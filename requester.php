@@ -399,7 +399,56 @@ function getPlayerMatchStats($matchId, $riotToken, $conn) {
     }
 }
 
+function getPlayerStatsTotals($conn, $playerName) {
+    $totals = array(
+        'total_kills' => 0,
+        'total_deaths' => 0,
+        'total_assists' => 0,
+        'total_kd' => 0,
+        'total_kad' => 0,
+        'total_cs' => 0,
+        'total_csm' => 0,
+        'total_dmg' => 0,
+        'total_dmm' => 0,
+        'total_vision_score' => 0,
+        'total_kp' => 0,
+        'games' => 0,
+        'total_average_kills' => 0,
+        'total_average_deaths' => 0,
+        'total_average_assists' => 0
+    );
 
+    // Fetch player stats for all matches
+    $stmt = $conn->prepare("SELECT * FROM player_stats WHERE `name` = ?");
+    $stmt->bind_param("s", $playerName);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    while ($row = $result->fetch_assoc()) {
+        // Add each stat to the corresponding total
+        $totals['total_kills'] += $row['kills'];
+        $totals['total_deaths'] += $row['deaths'];
+        $totals['total_assists'] += $row['assists'];
+        $totals['total_kd'] += $row['kd'];
+        $totals['total_kad'] += $row['kad'];
+        $totals['total_cs'] += $row['cs'];
+        $totals['total_csm'] += $row['csm'];
+        $totals['total_dmg'] += $row['dmg'];
+        $totals['total_dmm'] += $row['dmm'];
+        $totals['total_vision_score'] += $row['vision_score'];
+        $totals['total_kp'] += $row['kp'];
+        $totals['games']++;
+    }
+
+    $stmt->close();
+
+    // Calculate average values
+    $totals['total_average_kills'] = $totals['total_kills'] / $totals['games'];
+    $totals['total_average_deaths'] = $totals['total_deaths'] / $totals['games'];
+    $totals['total_average_assists'] = $totals['total_assists'] / $totals['games'];
+
+    return $totals;
+}
 
 
 // need to know current rank, last season peak rank, account level, games played this season/split

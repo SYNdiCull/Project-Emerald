@@ -99,6 +99,23 @@ if (isset($_POST['confirmStats'])) {
     }
 }    
 
+
+function insertPlayerTotalsIntoOverallStats($conn, $playerName, $totals) {
+    $stmt = $conn->prepare("
+        INSERT INTO overall_stats (name, total_kills, total_deaths, ...)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        total_kills = total_kills + VALUES(total_kills),
+        total_deaths = total_deaths + VALUES(total_deaths),
+        ...
+    ");
+
+    $stmt->bind_param("sii", $playerName, $totals['kills'], $totals['deaths']);
+    // Bind other parameters accordingly
+    $stmt->execute();
+    $stmt->close();
+}
+
 // Function to get all team IDs from the teams table
 function getTeamIds($conn) {
     $teamIds = array();
@@ -133,46 +150,7 @@ function getPlayerNames($conn) {
 }
 
 
-function getPlayerStatsTotals($conn, $playerName, $matchId) {
-    $totals = array(
-        'kills' => 0,
-        'deaths' => 0,
-        'assists' => 0,
-        'kd' => 0,
-        'kad' => 0,
-        'cs' => 0,
-        'csm' => 0,
-        'dmg' => 0,
-        'dmm' => 0,
-        'vision_score' => 0,
-        'kp' => 0
-    );
 
-    // Fetch player stats by name and match
-    $stmt = $conn->prepare("SELECT * FROM player_stats WHERE `name` = ? AND match_id = ?");
-    $stmt->bind_param("ss", $playerName, $matchId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    while ($row = $result->fetch_assoc()) {
-        // Add each stat to the corresponding total
-        $totals['kills'] += $row['kills'];
-        $totals['deaths'] += $row['deaths'];
-        $totals['assists'] += $row['assists'];
-        $totals['kd'] += $row['kd'];
-        $totals['kad'] += $row['kad'];
-        $totals['cs'] += $row['cs'];
-        $totals['csm'] += $row['csm'];
-        $totals['dmg'] += $row['dmg'];
-        $totals['dmm'] += $row['dmm'];
-        $totals['vision_score'] += $row['vision_score'];
-        $totals['kp'] += $row['kp'];
-    }
-
-    $stmt->close();
-
-    return $totals;
-}
 
 
 
@@ -197,8 +175,8 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
                 <a class="navbar-brand" href="/dashboard.php">Dashboard</a>
 
                 <?php if ($guestoradmin == "Admin") {echo '<div class="tab active" onclick=openTab("statGen")>Generate Stats</div>';} ?>
-                <?php if ($guestoradmin == "Guest") {echo '<div class="tab active" onclick=openTab("teamStats")>Team Stats</div>';} else {echo '<div class="tab" onclick=openTab("teamStats")>Team Stats</div>';}?>
-                <div class="tab" onclick="openTab('generalStatsView')">Overall Player Stats</div>
+                <?php if ($guestoradmin == "Guest") {echo '<div class="tab active" onclick=openTab("playerStats")>Overall Player Stats</div>';} else {echo '<div class="tab" onclick=openTab("playerStats")>Overall Player Stats</div>';}?>
+                <div class="tab" onclick="openTab('generalStatsView')">Team Stats</div>
                 <?php if ($guestoradmin == "Admin") {echo '<div class="tab" onclick=openTab("teamManagement")>Team Management</div>';} ?>
                 <!-- <div class="tab" onclick="openTab('teamOrganization')">Team Organization</div>
                 <div class="tab" onclick="openTab('teamOrganization')">Team Organization</div> -->
@@ -347,52 +325,127 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
         </div>
 
 
-        <div class="tabContent" id="teamStatsContent" style=<?php if ($guestoradmin == "Guest") {echo '"display: block;"';} else {echo '"display: none;"';} ?>>
+        <div class="tabContent" id="playerStatsContent" style=<?php if ($guestoradmin == "Guest") {echo '"display: block;"';} else {echo '"display: none;"';} ?>>
             <!-- Content for the Setup View tab -->
-            <h2 style="margin: auto">Team Stats</h2>
-                <?php
-                    if (isset($_POST['confirmStats'])) {
-                        $matchId = $_POST['matchId']; // Adjust based on your form field name
-                    
-                        // Fetch unique players for the new match
-                        $playersStmt = $conn->prepare("SELECT DISTINCT `name` FROM player_stats WHERE match_id = ?");
-                        $playersStmt->bind_param("s", $matchId);
-                        $playersStmt->execute();
-                        $playersResult = $playersStmt->get_result();
-                    
-                        // Display the updated table
-                        echo '<table class="table table-bordered" style="padding-left:10px;">';
-                        echo '<tr><th>Name</th><th>Kills</th><th>Deaths</th><th>Assists</th><th>K/D</th><th>K/D/A</th><th>CS</th><th>CSM</th><th>DMG</th><th>DMM</th><th>Vision Score</th><th>KP</th></tr>';
-                    
-                        while ($playerRow = $playersResult->fetch_assoc()) {
-                            $playerName = $playerRow['name'];
-                            $totals = getPlayerStatsTotals($conn, $playerName, $matchId);
-                    
-                            echo '<tr>';
-                            echo '<td>' . $playerName . '</td>';
-                            echo '<td>' . $totals['kills'] . '</td>';
-                            echo '<td>' . $totals['deaths'] . '</td>';
-                            echo '<td>' . $totals['assists'] . '</td>';
-                            echo '<td>' . $totals['kd'] . '</td>';
-                            echo '<td>' . $totals['kad'] . '</td>';
-                            echo '<td>' . $totals['cs'] . '</td>';
-                            echo '<td>' . $totals['csm'] . '</td>';
-                            echo '<td>' . $totals['dmg'] . '</td>';
-                            echo '<td>' . $totals['dmm'] . '</td>';
-                            echo '<td>' . $totals['vision_score'] . '</td>';
-                            echo '<td>' . $totals['kp'] . '</td>';
-                            echo '</tr>';
-                        }
-                    
-                        echo '</table>';
-                    
-                        $playersStmt->close();
-                    }
-                ?>
-
-                
+            <h2 style="margin: auto">Player Stats</h2>
+            <table id="playerStatsTable" class="table table-bordered table-hover" style="padding-left:10px;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Kills</th>
+                        <th>Deaths</th>
+                        <th>Assists</th>
+                        <th>K/D</th>
+                        <th>K/D/A</th>
+                        <th>CS</th>
+                        <th>CSM</th>
+                        <th>DMG</th>
+                        <th>DMM</th>
+                        <th>Vision Score</th>
+                        <th>KP</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
             </table>
-            
+
+            <script>
+                $(document).ready(function () {
+                    // Load match IDs when the page loads
+                    getAllMatchIds();
+
+                    function getAllMatchIds() {
+                        $.ajax({
+                            type: 'POST',
+                            url: 'getMatchIds.php',
+                            success: function (response) {
+                                var matchIds = JSON.parse(response);
+                                updateTeamStats(matchIds);
+                            },
+                            error: function (error) {
+                                console.error('Error fetching match IDs:', error);
+                            }
+                        });
+                    }
+
+                    function updateTeamStats(matchIds) {
+                        var aggregatedStats = {};
+
+                        matchIds.forEach(function (matchId) {
+                            $.ajax({
+                                type: 'POST',
+                                url: 'updateTeamStats.php',
+                                data: { matchId: matchId },
+                                success: function (response) {
+                                    var playerStats = JSON.parse(response);
+                                    aggregatePlayerStats(aggregatedStats, playerStats);
+                                    displayAggregatedStats(aggregatedStats);
+                                },
+                                error: function (error) {
+                                    console.error('Error updating team stats:', error);
+                                }
+                            });
+                        });
+                    }
+
+                    function aggregatePlayerStats(aggregatedStats, playerStats) {
+                        playerStats.forEach(function (stats) {
+                            var playerName = stats.name;
+
+                            if (!aggregatedStats[playerName]) {
+                                aggregatedStats[playerName] = {
+                                    kills: 0,
+                                    deaths: 0,
+                                    assists: 0,
+                                    kd: 0,
+                                    kad: 0,
+                                    cs: 0,
+                                    csm: 0,
+                                    dmg: 0,
+                                    dmm: 0,
+                                    vision_score: 0,
+                                    kp: 0,
+                                };
+                            }
+
+                            aggregatedStats[playerName].kills += stats.kills;
+                            aggregatedStats[playerName].deaths += stats.deaths;
+                            aggregatedStats[playerName].assists += stats.assists;
+                            aggregatedStats[playerName].kd += stats.kd;
+                            aggregatedStats[playerName].kad += stats.kad;
+                            aggregatedStats[playerName].cs += stats.cs;
+                            aggregatedStats[playerName].csm += stats.csm;
+                            aggregatedStats[playerName].dmg += stats.dmg;
+                            aggregatedStats[playerName].dmm += stats.dmm;
+                            aggregatedStats[playerName].vision_score += stats.vision_score;
+                            aggregatedStats[playerName].kp += stats.kp;
+                        });
+                    }
+
+                    function displayAggregatedStats(aggregatedStats) {
+                        var table = $('#playerStatsTable');
+                        table.find('tbody').empty();
+
+                        Object.keys(aggregatedStats).forEach(function (playerName) {
+                            var stats = aggregatedStats[playerName];
+                            var row = '<tr>' +
+                                '<td>' + playerName + '</td>' +
+                                '<td>' + stats.kills + '</td>' +
+                                '<td>' + stats.deaths + '</td>' +
+                                '<td>' + stats.assists + '</td>' +
+                                '<td>' + stats.kd + '</td>' +
+                                '<td>' + stats.kad + '</td>' +
+                                '<td>' + stats.cs + '</td>' +
+                                '<td>' + stats.csm + '</td>' +
+                                '<td>' + stats.dmg + '</td>' +
+                                '<td>' + stats.dmm + '</td>' +
+                                '<td>' + stats.vision_score + '</td>' +
+                                '<td>' + stats.kp + '</td>' +
+                                '</tr>';
+                            table.append(row);
+                        });
+                    }
+                });
+            </script>
         </div>
 
 
@@ -406,9 +459,6 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
         </div>
     </div>
 
-
-
-        
     <script>
         // Function to open a tab and display its content
         function openTab(tabName) {
@@ -434,5 +484,8 @@ function getPlayerStatsTotals($conn, $playerName, $matchId) {
             // Log the value of tabContentElement to the console
         }
     </script>
+
+        
+    
     </body>
 </html>
