@@ -25,21 +25,25 @@ Welcome to the README for the Emerald Project! This website provides a comprehen
 - **Player Statistics:** Get in-depth player statistics, including win rates, and more, to gain insights into your favorite gamers' performance.
 
 ## 3. Installation
+Download the XAMPP app on
+![[download XAMMP](https://www.apachefriends.org/download.html)]
 
 ### a. Installing PHP on Mac
 To run the Emerald Project locally on your Mac, you'll need to install PHP. Follow these steps:
 Mac:
-Install Homebrew: brew install homebrew
-Install PHP: brew install php
-Login to the database and create a 'phplogin' database. Enter this database and add an 'accounts' table. Enter values for email, password, username, and ID (as a primary key)
+Install XAMMP
+Login to the database at  and create a 'phplogin' database. Enter this database and add an 'accounts' table. Enter values for email, password, username, and ID. Add matches, players, player_stats and teams. Alternately, you can use the file made by our team and skip the account setup process. Please reach out support team.
 
 ### b. Installing PHP on Windows:
 Download the latest version of PHP from the official website.
 Run the installer and follow the on-screen instructions.
 
-Install xammp, and run the apach2 webserver, along with the database. Login to the database and create a 'phplogin' database. Enter this database and add an 'accounts' table. Enter values for email, password, username, and ID (as a primary key)
+Install xammp, and run the apach2 webserver, along with the database. Login to the database at  and create a 'phplogin' database. Enter this database and add an 'accounts' table. Enter values for email, password, username, and ID. Add matches, players, player_stats and teams. Alternately, you can use the file made by our team and skip the account setup process. Please reach out support team.
 
 on linux: install phpmyadmin, mysql-server, and apache2. Set these up. Add the same table and DB as the windows setup.
+
+Values of the tables and step by step instalation is attached at
+![[step by step listed at](https://imgur.com/a/au5Fsba)]
 
 ## 4. Usage
 Once you have PHP installed, you can start using the Emerald Project locally. Follow these steps:
